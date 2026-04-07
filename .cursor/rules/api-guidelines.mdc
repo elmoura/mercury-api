@@ -7,6 +7,8 @@ alwaysApply: true
 # Contexto do Projeto
 Este é um projeto backend que utiliza **NestJS** com **TypeScript** para construir uma API REST. O banco de dados é **MongoDB** (com Mongoose) e utilizamos o pacote NPM **@google/generative-ai** para integração com o Gemini (LLM). Utilize Yarn como gerenciador de pacotes.
 
+A documentação HTTP da API é gerada com **OpenAPI 3** via **`@nestjs/swagger`**. A UI interativa (Swagger UI) fica em **`/docs`** (configurada em `src/main.ts`). Não duplique a configuração global do Swagger em módulos; apenas documente cada rota e DTO conforme as regras abaixo.
+
 # Estrutura de Pastas Obrigatória
 Ao criar ou modular código, siga rigorosamente a estrutura abaixo:
 
@@ -43,7 +45,16 @@ src/
 - **Usecase:** Contém toda a lógica de negócio. Deve ser puro e testável.
 - **Datasource:** Apenas operações de banco de dados (CRUD). Não conter lógica de negócio.
 - **Entity:** Definida com decoradores do Mongoose.
-- **DTOs:** Usar `class-validator` para validação de entrada.
+- **DTOs:** Usar `class-validator` para validação de entrada e **`@nestjs/swagger`** (`ApiProperty`, `ApiPropertyOptional`, etc.) para o schema no OpenAPI.
+
+## 1.1 Documentação OpenAPI (Swagger)
+
+- **Controller:** Agrupe rotas com `@ApiTags('Nome do grupo')` no nível da classe. Em cada método use `@ApiOperation` (summary e, se útil, description).
+- **Corpo / query / path:** Use `@ApiBody({ type: SeuInputDto })`, `@ApiQuery`, `@ApiParam` quando o Nest não inferir tudo sozinho ou quando precisar de exemplos/descrições explícitas.
+- **Respostas:** Documente status relevantes com `@ApiResponse`, `@ApiNoContentResponse` (204) ou equivalente, incluindo erros mapeados pelo controller (ex.: 400 para regra de negócio).
+- **DTOs de entrada e saída:** Em classes usadas no Swagger, adicione `@ApiProperty` / `@ApiPropertyOptional` em cada campo visível na API; use `enum:` para enums TypeScript; para objetos aninhados, use `type:` apontando para a classe nested ou `@ApiProperty({ type: () => NestedDto })` quando necessário.
+- **Payloads livres ou de terceiros:** Se o body não tiver DTO tipado, documente com `@ApiBody` e `schema` (ex.: `type: 'object'`, `additionalProperties: true`) e uma descrição ou exemplo representativo.
+- **Consistência:** Toda rota pública deve aparecer no OpenAPI com tag, operação e respostas coerentes com o comportamento real (status codes e tipos de retorno).
 
 ## 2. Tratamento de Erros
 - Erros de domínio devem ser classes que estendem `Error` e ficam na pasta `exceptions/`.
@@ -61,8 +72,9 @@ Ao gerar código para este projeto:
 1. Siga **exatamente** a estrutura de pastas definida acima.
 2. Sempre crie os arquivos de teste correspondentes (`.spec.ts`) junto com a implementação.
 3. Utilize injeção de dependência do NestJS para conectar as camadas.
-4. Valide todos os DTOs de entrada com `class-validator`.
+4. Valide todos os DTOs de entrada com `class-validator` e documente-os no OpenAPI com `@nestjs/swagger` nos DTOs e no controller.
 5. Ao criar um novo módulo, gere toda a estrutura de pastas padrão (exceptions, entities, datasources, usecases/dtos, etc.) automaticamente.
+6. Ao adicionar ou alterar endpoints, mantenha a documentação Swagger atualizada (tags, operações, respostas, DTOs).
 
 - Utilize sempre ObjectId para os IDs salvos no MongoDb
 - Utilize sempre boas práticas de desenvolvimento. Evite acoplar lógica específica em documentos genéricos. Idealmente, o usecase deve sempre ter a lógica específica do cenário e os demais componentes são mais genéricos. Ex.: DataSource com método "update" reaproveitável, e o usecase define quais campos serão alterados. O mesmo se aplica para outros componentes reaproveitáveis. Priorize sempre que a lógica específica daquele cenário esteja no usecase.
