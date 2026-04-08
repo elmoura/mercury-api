@@ -1,5 +1,6 @@
 import { ApiProperty } from '@nestjs/swagger';
 
+/** Resposta do callback OAuth: nunca inclui o `access_token` em claro. */
 export class ConnectMetaOauthOutputDto {
   @ApiProperty()
   connected: boolean;

@@ -13,4 +13,12 @@ export class ConnectMetaOauthInputDto {
   })
   @IsUrl()
   redirectUri: string;
+
+  @ApiProperty({
+    description: 'State OAuth devolvido pela Meta',
+    example: 'eyJub25jZSI6IjEyMyIsIm9yZyI6IjUwN2YxZj...==',
+  })
+  @IsString()
+  @MinLength(1)
+  state: string;
 }

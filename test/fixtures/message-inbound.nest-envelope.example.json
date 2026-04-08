@@ -1,0 +1,17 @@
+{
+  "pattern": "message.inbound.v1",
+  "data": {
+    "schemaVersion": "message.inbound.v1",
+    "eventId": "550e8400-e29b-41d4-a716-446655440000",
+    "organizationId": "507f1f77bcf86cd799439011",
+    "agentId": "507f1f77bcf86cd799439012",
+    "metaPhoneNumberId": "106540522029767",
+    "metaMessageId": "wamid.xxx",
+    "fromWaId": "5511999999999",
+    "contactName": "Cliente",
+    "timestampIso": "2026-04-08T12:00:00.000Z",
+    "messageType": "text",
+    "text": "Olá",
+    "rawMessage": {}
+  }
+}

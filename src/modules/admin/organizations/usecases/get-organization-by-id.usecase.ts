@@ -3,7 +3,7 @@ import { Types } from 'mongoose';
 import { OrganizationEntityDatasource } from '../datasources/organization-entity.datasource';
 import { InvalidDataException } from '../exceptions/invalid-data.exception';
 import { OrganizationDetailOutputDto } from './dtos/organization-detail-output.dto';
-import { mapOrganizationDocumentToListItem } from './mappers/organization-read.mapper';
+import { mapOrganizationDocumentToDetail } from './mappers/organization-read.mapper';
 
 @Injectable()
 export class GetOrganizationByIdUsecase {
@@ -24,6 +24,6 @@ export class GetOrganizationByIdUsecase {
       throw new NotFoundException('Organização não encontrada.');
     }
 
-    return mapOrganizationDocumentToListItem(doc);
+    return mapOrganizationDocumentToDetail(doc);
   }
 }

@@ -41,12 +41,29 @@ export const config = {
       return Number.isFinite(n) && n > 0 ? n : 48 * 60 * 60 * 1000;
     })(),
   },
+  agents: {
+    promptMaxChars: (() => {
+      const n = Number(process.env.AGENT_PROMPT_MAX_CHARS);
+      return Number.isFinite(n) && n > 0 ? n : 8000;
+    })(),
+  },
   whatsapp: {
     verificationToken: process.env.WHATSAPP_VERIFICATION_TOKEN ?? '',
     businessToken: process.env.WHATSAPP_BUSINESS_TOKEN ?? '',
   },
+  rabbitmq: {
+    url: process.env.RABBITMQ_URL ?? '',
+    /** Exchange fanout: um publish replica para todas as filas bound. */
+    inboundExchange:
+      process.env.RABBITMQ_WHATSAPP_INBOUND_EXCHANGE ??
+      'whatsapp.inbound.fanout',
+  },
   meta: {
     appId: process.env.META_APP_ID ?? '',
     appSecret: process.env.META_APP_SECRET ?? '',
+    oauthStateMaxAgeMs: (() => {
+      const n = Number(process.env.META_OAUTH_STATE_MAX_AGE_MS);
+      return Number.isFinite(n) && n > 0 ? n : 10 * 60 * 1000;
+    })(),
   },
 };

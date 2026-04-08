@@ -5,9 +5,16 @@ alwaysApply: true
 ---
 
 # Contexto do Projeto
-Este é um projeto backend que utiliza **NestJS** com **TypeScript** para construir uma API REST. O banco de dados é **MongoDB** (com Mongoose) e utilizamos o pacote NPM **@google/generative-ai** para integração com o Gemini (LLM). Utilize NPM como gerenciador de pacotes.
+Este é um projeto backend que utiliza **NestJS** com **TypeScript** para construir uma API REST. O banco de dados é **MongoDB** (com Mongoose). O consumidor de mensagens (**heracles-consumer**) integra o LLM via **Mistral** (pacote NPM **@mistralai/mistralai**). Utilize NPM como gerenciador de pacotes.
 
 A documentação HTTP da API é gerada com **OpenAPI 3** via **`@nestjs/swagger`**. A UI interativa (Swagger UI) fica em **`/docs`** (configurada em `src/main.ts`). Não duplique a configuração global do Swagger em módulos; apenas documente cada rota e DTO conforme as regras abaixo.
+
+## RabbitMQ (AMQP)
+
+- **Não** uses `amqplib` diretamente para publicar ou gerir conexões na API.
+- Usa **`@nestjs/microservices`** com **`Transport.RMQ`** e **`ClientsModule`** / **`ClientProxy`** (ver [`src/shared/rabbitmq/rabbitmq.module.ts`](../../src/shared/rabbitmq/rabbitmq.module.ts) e [`rabbitmq-publisher.service.ts`](../../src/shared/rabbitmq/rabbitmq-publisher.service.ts)).
+- A exchange de inbound WhatsApp é **fanout**; o padrão de evento é `message.inbound.v1` (o payload do domínio vai em `data` no envelope serializado pelo transport Nest).
+- Variáveis: `RABBITMQ_URL`, `RABBITMQ_WHATSAPP_INBOUND_EXCHANGE` (ver [`docs/rabbitmq-topology.md`](../../docs/rabbitmq-topology.md)).
 
 # Estrutura de Pastas Obrigatória
 Ao criar ou modular código, siga rigorosamente a estrutura abaixo:
@@ -64,8 +71,8 @@ src/
 - **Usecase:** Testar todos os cenários (feliz e triste). Cobertura completa.
 - **Controller:** Testar rotas e o mapeamento de erros/exceções.
 
-## 4. Integração com Gemini
-- Chamadas ao modelo Gemini devem ser encapsuladas em serviços dentro da pasta `shared/services/` e injetadas nos usecases que necessitarem.
+## 4. Integração com LLM (Mistral)
+- Chamadas ao modelo (Mistral) no **heracles-consumer** devem ficar encapsuladas em serviços dedicados (ex.: `LlmClient`) e injetadas onde forem necessárias; na **hermes-api**, se surgirem chamadas diretas ao LLM no futuro, seguir o mesmo padrão em `shared/services/`.
 
 # Comportamento Esperado do Assistente
 Ao gerar código para este projeto:

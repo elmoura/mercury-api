@@ -1,26 +1,38 @@
 import { ApiProperty } from '@nestjs/swagger';
-import { OrganizationPlanTypes } from '../../entities/organization.entity';
+import { OrganizationListItemDto } from './list-organizations-output.dto';
 
-export class OrganizationDetailOutputDto {
-  @ApiProperty({ example: '507f1f77bcf86cd799439011' })
-  _id: string;
-
-  @ApiProperty({ example: 'Mercury' })
-  name: string;
+/**
+ * Detalhe de organização (tenant ou admin): inclui estado da integração Meta/WhatsApp **sem** expor o segredo do token.
+ */
+export class OrganizationDetailOutputDto extends OrganizationListItemDto {
+  @ApiProperty({
+    description:
+      'Indica se existe token WhatsApp Business persistido (o valor do token nunca é devolvido por esta API).',
+  })
+  hasWhatsappIntegration: boolean;
 
   @ApiProperty({
-    example: '507f1f77bcf86cd799439012',
     nullable: true,
-    description: 'ID do usuário owner, se definido.',
+    description: 'Expiração do token de acesso quando conhecida (ISO 8601).',
   })
-  ownerId: string | null;
+  whatsappTokenExpiresAt: string | null;
 
-  @ApiProperty({ enum: OrganizationPlanTypes })
-  planType: OrganizationPlanTypes;
+  @ApiProperty({
+    nullable: true,
+    description: 'ID de negócio Meta quando disponível.',
+  })
+  facebookBusinessId: string | null;
 
-  @ApiProperty({ description: 'ISO 8601' })
-  createdAt: string;
+  @ApiProperty({
+    type: [String],
+    description: 'Números WhatsApp associados quando sincronizados.',
+  })
+  whatsappNumbers: string[];
 
-  @ApiProperty({ description: 'ISO 8601' })
-  updatedAt: string;
+  @ApiProperty({
+    nullable: true,
+    description:
+      'Última vez em que o token foi renovado (ex.: job em background), ISO 8601.',
+  })
+  whatsappTokenLastRefreshedAt: string | null;
 }

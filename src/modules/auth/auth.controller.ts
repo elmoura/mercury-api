@@ -28,7 +28,9 @@ export class AuthController {
     description: 'Token emitido',
     type: LoginOutputDto,
   })
-  @ApiUnauthorizedResponse({ description: 'Credenciais inválidas ou conta inativa' })
+  @ApiUnauthorizedResponse({
+    description: 'Credenciais inválidas ou conta inativa',
+  })
   async login(@Body() body: LoginInputDto): Promise<LoginOutputDto> {
     return await this.loginUsecase.execute(body);
   }

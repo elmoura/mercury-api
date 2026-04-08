@@ -69,9 +69,14 @@ export class OrganizationMembersController {
     type: ConnectMetaOauthOutputDto,
   })
   @ApiUnauthorizedResponse({ description: 'Token ausente ou inválido' })
-  @ApiForbiddenResponse({ description: 'Sem permissão de gestão da organização' })
+  @ApiForbiddenResponse({
+    description: 'Sem permissão de gestão da organização',
+  })
   @ApiNotFoundResponse({ description: 'Organização não encontrada' })
-  @ApiResponse({ status: 400, description: 'Code inválido ou falha na Meta API' })
+  @ApiResponse({
+    status: 400,
+    description: 'Code inválido ou falha na Meta API',
+  })
   async connectMetaOauth(
     @Param('organizationId') organizationId: string,
     @Body() body: ConnectMetaOauthInputDto,
@@ -80,6 +85,7 @@ export class OrganizationMembersController {
       organizationId,
       code: body.code,
       redirectUri: body.redirectUri,
+      state: body.state,
     });
   }
 
@@ -87,6 +93,8 @@ export class OrganizationMembersController {
   @UseGuards(TenantJwtAuthGuard)
   @ApiOperation({
     summary: 'Obter detalhes da organização atual (tenant)',
+    description:
+      'Inclui estado da integração Meta/WhatsApp (`hasWhatsappIntegration`, expiração, etc.) sem expor o token de acesso.',
   })
   @ApiParam({
     name: 'organizationId',
@@ -129,7 +137,10 @@ export class OrganizationMembersController {
     @Param('organizationId') organizationId: string,
     @Query() query: ListOrganizationUsersQueryDto,
   ): Promise<ListOrganizationUsersOutputDto> {
-    return await this.listOrganizationUsersUsecase.execute(organizationId, query);
+    return await this.listOrganizationUsersUsecase.execute(
+      organizationId,
+      query,
+    );
   }
 
   @Patch(':organizationId/members/:userId')

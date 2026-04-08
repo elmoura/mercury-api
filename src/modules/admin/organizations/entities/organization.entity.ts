@@ -24,8 +24,13 @@ export class OrganizationEntity {
   @Prop()
   facebookBusinessId?: string;
 
+  /** Token de acesso Meta (Graph / WhatsApp Cloud API); nunca expor em DTOs de leitura. */
   @Prop()
-  whatsappBusinessToken: string;
+  whatsappBusinessToken?: string;
+
+  /** Valor de `token_type` na última troca OAuth (ex.: bearer). */
+  @Prop()
+  metaTokenType?: string;
 
   @Prop()
   tokenExpiresAt?: Date;
@@ -40,3 +45,6 @@ export class OrganizationEntity {
 export type OrganizationDocument = HydratedDocument<OrganizationEntity>;
 export const OrganizationSchema =
   SchemaFactory.createForClass(OrganizationEntity);
+
+/** Suporta jobs de refresh (ex.: janela por `tokenExpiresAt`). */
+OrganizationSchema.index({ tokenExpiresAt: 1 }, { sparse: true });

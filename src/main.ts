@@ -3,6 +3,7 @@ import { AppModule } from '@/app.module';
 import { config } from '@/config/config';
 import { ValidationPipe } from '@nestjs/common';
 import { DocumentBuilder, SwaggerModule } from '@nestjs/swagger';
+import { HttpLoggingInterceptor } from '@/shared/http/http-logging.interceptor';
 
 function isLocalhostOrigin(origin: string): boolean {
   try {
@@ -15,6 +16,8 @@ function isLocalhostOrigin(origin: string): boolean {
 
 async function bootstrap() {
   const app = await NestFactory.create(AppModule);
+
+  app.useGlobalInterceptors(new HttpLoggingInterceptor());
 
   const allowedOrigins = new Set([
     config.mail.frontendUrl,

@@ -2,10 +2,7 @@ import { UnauthorizedException } from '@nestjs/common';
 import { Types } from 'mongoose';
 import { Md5HashService } from '@shared/services/md5-hash.service';
 import { UserEntityDatasource } from '@modules/users/datasources/user-entity.datasource';
-import {
-  AccountStatus,
-  UserRoles,
-} from '@modules/users/entities/user.entity';
+import { AccountStatus, UserRoles } from '@modules/users/entities/user.entity';
 import { TenantJwtService } from '../tenant-jwt.service';
 import { LoginUsecase } from './login.usecase';
 
@@ -52,7 +49,9 @@ describe('LoginUsecase', () => {
       password: 'senha1234',
     });
 
-    expect(userDatasourceMock.findByEmail).toHaveBeenCalledWith('ana@exemplo.com');
+    expect(userDatasourceMock.findByEmail).toHaveBeenCalledWith(
+      'ana@exemplo.com',
+    );
     expect(md5HashServiceMock.decrypt).toHaveBeenCalled();
     expect(tenantJwtMock.signAccessToken).toHaveBeenCalledWith(
       userId.toString(),

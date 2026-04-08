@@ -93,11 +93,15 @@ describe('OrganizationMembersController', () => {
     const result = await controller.connectMetaOauth(orgId, {
       code: 'abc',
       redirectUri: 'http://localhost:5173/oauth/meta/callback',
+      state: Buffer.from(
+        JSON.stringify({ nonce: 'n1', org: orgId, t: Date.now() }),
+      ).toString('base64'),
     });
     expect(connectMetaOauthMock.execute).toHaveBeenCalledWith({
       organizationId: orgId,
       code: 'abc',
       redirectUri: 'http://localhost:5173/oauth/meta/callback',
+      state: expect.any(String),
     });
     expect(result.connected).toBe(true);
   });

@@ -24,7 +24,10 @@ export class LoginUsecase {
     }
 
     const passwordPlain = `${config.security.passwordMd5Salt}${input.password}`;
-    const passwordOk = this.md5HashService.decrypt(user.password, passwordPlain);
+    const passwordOk = this.md5HashService.decrypt(
+      user.password,
+      passwordPlain,
+    );
     if (!passwordOk) {
       throw new UnauthorizedException('Credenciais inválidas.');
     }

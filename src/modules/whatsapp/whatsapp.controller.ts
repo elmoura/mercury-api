@@ -1,4 +1,4 @@
-import { Body, Controller, Get, Post, Query } from '@nestjs/common';
+import { Body, Controller, Get, HttpCode, Post, Query } from '@nestjs/common';
 import {
   ApiBody,
   ApiOperation,
@@ -54,9 +54,11 @@ export class WhatsappController {
     },
   })
   @ApiResponse({
-    status: 201,
-    description: 'Ecoa o payload recebido (comportamento atual do usecase).',
+    status: 200,
+    description:
+      'Processamento assíncrono: publica `message.inbound.v1` no RabbitMQ quando há agente com `metaPhoneNumberId`.',
   })
+  @HttpCode(200)
   receiveMessage(@Body() body: Record<string, unknown>) {
     return this.receiveWhatsappMessageUsecase.execute(body);
   }
