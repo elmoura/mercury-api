@@ -1,6 +1,30 @@
 import { ApiProperty } from '@nestjs/swagger';
 import { OrganizationListItemDto } from './list-organizations-output.dto';
 
+export class OrganizationWhatsappNumberDto {
+  @ApiProperty({
+    description: 'ID do número na Meta (phone_number_id).',
+  })
+  metaPhoneNumberId: string;
+
+  @ApiProperty({
+    description: 'Número de exibição normalizado (E.164 simplificado).',
+  })
+  displayPhoneNumber: string;
+
+  @ApiProperty({ nullable: true })
+  verifiedName?: string;
+
+  @ApiProperty({ nullable: true })
+  qualityRating?: string;
+
+  @ApiProperty({ nullable: true })
+  codeVerificationStatus?: string;
+
+  @ApiProperty({ nullable: true })
+  nameStatus?: string;
+}
+
 /**
  * Detalhe de organização (tenant ou admin): inclui estado da integração Meta/WhatsApp **sem** expor o segredo do token.
  */
@@ -24,10 +48,10 @@ export class OrganizationDetailOutputDto extends OrganizationListItemDto {
   facebookBusinessId: string | null;
 
   @ApiProperty({
-    type: [String],
-    description: 'Números WhatsApp associados quando sincronizados.',
+    type: [OrganizationWhatsappNumberDto],
+    description: 'Números WhatsApp sincronizados da Meta.',
   })
-  whatsappNumbers: string[];
+  whatsappNumbers: OrganizationWhatsappNumberDto[];
 
   @ApiProperty({
     nullable: true,

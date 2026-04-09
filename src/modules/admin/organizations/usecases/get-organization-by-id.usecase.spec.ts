@@ -73,7 +73,13 @@ describe('GetOrganizationByIdUsecase', () => {
       whatsappBusinessToken: 'secret-token-must-not-leak',
       facebookBusinessId: 'biz-1',
       tokenExpiresAt: new Date('2025-06-01T12:00:00.000Z'),
-      whatsappNumbers: ['5511999999999'],
+      whatsappNumbers: [
+        {
+          metaPhoneNumberId: 'phone-id-1',
+          displayPhoneNumber: '+5511999999999',
+          verifiedName: 'Empresa XPTO',
+        },
+      ],
       get: (k: string) => {
         if (k === 'createdAt') {
           return new Date('2024-01-01T00:00:00.000Z');
@@ -96,7 +102,16 @@ describe('GetOrganizationByIdUsecase', () => {
     expect(out.hasWhatsappIntegration).toBe(true);
     expect(out.facebookBusinessId).toBe('biz-1');
     expect(out.whatsappTokenExpiresAt).toBe('2025-06-01T12:00:00.000Z');
-    expect(out.whatsappNumbers).toEqual(['5511999999999']);
+    expect(out.whatsappNumbers).toEqual([
+      {
+        metaPhoneNumberId: 'phone-id-1',
+        displayPhoneNumber: '+5511999999999',
+        verifiedName: 'Empresa XPTO',
+        qualityRating: undefined,
+        codeVerificationStatus: undefined,
+        nameStatus: undefined,
+      },
+    ]);
     expect(out).not.toHaveProperty('whatsappBusinessToken');
   });
 });

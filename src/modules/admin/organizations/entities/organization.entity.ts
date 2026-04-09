@@ -7,6 +7,26 @@ export enum OrganizationPlanTypes {
   ENTERPRISE = 'enterprise',
 }
 
+export class OrganizationWhatsappNumberEntity {
+  @Prop({ required: true, trim: true })
+  metaPhoneNumberId: string;
+
+  @Prop({ required: true, trim: true })
+  displayPhoneNumber: string;
+
+  @Prop({ trim: true })
+  verifiedName?: string;
+
+  @Prop({ trim: true })
+  qualityRating?: string;
+
+  @Prop({ trim: true })
+  codeVerificationStatus?: string;
+
+  @Prop({ trim: true })
+  nameStatus?: string;
+}
+
 @Schema({ collection: 'organizations', timestamps: true })
 export class OrganizationEntity {
   @Prop({ required: true })
@@ -38,8 +58,8 @@ export class OrganizationEntity {
   @Prop()
   tokenLastRefreshedAt?: Date;
 
-  @Prop({ type: [String], default: [] })
-  whatsappNumbers?: string[];
+  @Prop({ type: [OrganizationWhatsappNumberEntity], default: [] })
+  whatsappNumbers?: OrganizationWhatsappNumberEntity[];
 }
 
 export type OrganizationDocument = HydratedDocument<OrganizationEntity>;

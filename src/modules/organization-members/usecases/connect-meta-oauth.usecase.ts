@@ -1,6 +1,7 @@
 import {
   BadRequestException,
   Injectable,
+  Logger,
   NotFoundException,
 } from '@nestjs/common';
 import { config } from '@config/config';
@@ -18,6 +19,21 @@ type GraphBusinessesResponse = {
   data?: Array<{ id?: string }>;
 };
 
+type GraphWhatsappBusinessAccountsResponse = {
+  data?: Array<{ id?: string }>;
+};
+
+type GraphPhoneNumbersResponse = {
+  data?: Array<{
+    id?: string;
+    display_phone_number?: string;
+    verified_name?: string;
+    quality_rating?: string;
+    code_verification_status?: string;
+    name_status?: string;
+  }>;
+};
+
 type DecodedOauthState = {
   org?: string;
   t?: number;
@@ -25,6 +41,8 @@ type DecodedOauthState = {
 
 @Injectable()
 export class ConnectMetaOauthUsecase {
+  private readonly logger = new Logger(ConnectMetaOauthUsecase.name);
+
   constructor(
     private readonly organizationDatasource: OrganizationEntityDatasource,
   ) {}
@@ -101,6 +119,12 @@ export class ConnectMetaOauthUsecase {
         'Falha ao persistir conexão Meta na organização.',
       );
     }
+
+    await this.trySyncWhatsappNumbers({
+      organizationId: input.organizationId,
+      accessToken,
+      facebookBusinessId,
+    });
 
     return {
       connected: true,
@@ -180,6 +204,185 @@ export class ConnectMetaOauthUsecase {
       .catch(() => ({}))) as GraphBusinessesResponse;
     const first = data.data?.[0];
     return typeof first?.id === 'string' ? first.id : null;
+  }
+
+  /**
+   * Decisão técnica M1-20 (Graph API):
+   * 1) /me/businesses -> facebookBusinessId
+   * 2) /{business-id}/owned_whatsapp_business_accounts -> wabaId
+   * 3) /{waba-id}/phone_numbers -> números (display_phone_number)
+   *
+   * Política de falha: erro na listagem não aborta OAuth após token já persistido.
+   */
+  private async trySyncWhatsappNumbers(input: {
+    organizationId: string;
+    accessToken: string;
+    facebookBusinessId: string | null;
+  }): Promise<void> {
+    if (!input.facebookBusinessId) {
+      this.logger.warn(
+        JSON.stringify({
+          msg: 'meta_numbers_sync_skipped',
+          organizationId: input.organizationId,
+          reason: 'facebook_business_id_not_found',
+        }),
+      );
+      return;
+    }
+
+    try {
+      const wabaId = await this.resolveFirstWhatsappBusinessAccountId({
+        accessToken: input.accessToken,
+        facebookBusinessId: input.facebookBusinessId,
+      });
+
+      if (!wabaId) {
+        this.logger.warn(
+          JSON.stringify({
+            msg: 'meta_numbers_sync_skipped',
+            organizationId: input.organizationId,
+            reason: 'waba_not_found_or_forbidden',
+            facebookBusinessId: input.facebookBusinessId,
+          }),
+        );
+        return;
+      }
+
+      const numbers = await this.listWhatsappPhoneNumbers({
+        accessToken: input.accessToken,
+        wabaId,
+      });
+
+      await this.organizationDatasource.updateById(
+        new Types.ObjectId(input.organizationId),
+        { whatsappNumbers: numbers },
+      );
+    } catch (error: unknown) {
+      this.logger.warn(
+        JSON.stringify({
+          msg: 'meta_numbers_sync_failed',
+          organizationId: input.organizationId,
+          reason: error instanceof Error ? error.message : String(error),
+        }),
+      );
+    }
+  }
+
+  private async resolveFirstWhatsappBusinessAccountId(input: {
+    accessToken: string;
+    facebookBusinessId: string;
+  }): Promise<string | null> {
+    const params = new URLSearchParams({
+      access_token: input.accessToken,
+      fields: 'id',
+      limit: '1',
+    });
+
+    const response = await this.fetchWithTimeout(
+      `https://graph.facebook.com/v22.0/${input.facebookBusinessId}/owned_whatsapp_business_accounts?${params.toString()}`,
+    );
+    if (!response.ok) {
+      return null;
+    }
+
+    const data = (await response
+      .json()
+      .catch(() => ({}))) as GraphWhatsappBusinessAccountsResponse;
+    const first = data.data?.[0];
+    return typeof first?.id === 'string' ? first.id : null;
+  }
+
+  private async listWhatsappPhoneNumbers(input: {
+    accessToken: string;
+    wabaId: string;
+  }): Promise<
+    Array<{
+      metaPhoneNumberId: string;
+      displayPhoneNumber: string;
+      verifiedName?: string;
+      qualityRating?: string;
+      codeVerificationStatus?: string;
+      nameStatus?: string;
+    }>
+  > {
+    const params = new URLSearchParams({
+      access_token: input.accessToken,
+      fields:
+        'id,display_phone_number,verified_name,quality_rating,code_verification_status,name_status',
+      limit: '50',
+    });
+
+    const response = await this.fetchWithTimeout(
+      `https://graph.facebook.com/v22.0/${input.wabaId}/phone_numbers?${params.toString()}`,
+    );
+    if (!response.ok) {
+      return [];
+    }
+
+    const data = (await response
+      .json()
+      .catch(() => ({}))) as GraphPhoneNumbersResponse;
+    const values = data.data ?? [];
+
+    const normalized = values
+      .map((item) => {
+        const metaPhoneNumberId =
+          typeof item.id === 'string' ? item.id.trim() : '';
+        const displayPhoneNumber = this.normalizePhoneNumber(
+          item.display_phone_number,
+        );
+        if (!metaPhoneNumberId || !displayPhoneNumber) {
+          return null;
+        }
+        return {
+          metaPhoneNumberId,
+          displayPhoneNumber,
+          verifiedName:
+            typeof item.verified_name === 'string'
+              ? item.verified_name
+              : undefined,
+          qualityRating:
+            typeof item.quality_rating === 'string'
+              ? item.quality_rating
+              : undefined,
+          codeVerificationStatus:
+            typeof item.code_verification_status === 'string'
+              ? item.code_verification_status
+              : undefined,
+          nameStatus:
+            typeof item.name_status === 'string' ? item.name_status : undefined,
+        };
+      })
+      .filter((item): item is NonNullable<typeof item> => Boolean(item));
+
+    const uniqueByMetaId = new Map<string, (typeof normalized)[number]>();
+    for (const item of normalized) {
+      uniqueByMetaId.set(item.metaPhoneNumberId, item);
+    }
+
+    return [...uniqueByMetaId.values()];
+  }
+
+  private normalizePhoneNumber(raw: string | undefined): string | null {
+    if (!raw) {
+      return null;
+    }
+    const digits = raw.replace(/\D/g, '');
+    if (!digits) {
+      return null;
+    }
+    return `+${digits}`;
+  }
+
+  private async fetchWithTimeout(url: string, timeoutMs = 7000): Promise<Response> {
+    const controller = new AbortController();
+    const timeoutId = setTimeout(() => controller.abort(), timeoutMs);
+
+    try {
+      return await fetch(url, { signal: controller.signal });
+    } finally {
+      clearTimeout(timeoutId);
+    }
   }
 
   private validateState(rawState: string, organizationId: string): void {

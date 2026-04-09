@@ -63,6 +63,25 @@ describe('ConnectMetaOauthUsecase', () => {
       .mockResolvedValueOnce({
         ok: true,
         json: async () => ({ data: [{ id: 'biz_1' }] }),
+      })
+      .mockResolvedValueOnce({
+        ok: true,
+        json: async () => ({ data: [{ id: 'waba_1' }] }),
+      })
+      .mockResolvedValueOnce({
+        ok: true,
+        json: async () => ({
+          data: [
+            {
+              id: 'phone-id-1',
+              display_phone_number: '+55 11 99999-1234',
+              verified_name: 'Empresa XPTO',
+              quality_rating: 'GREEN',
+              code_verification_status: 'VERIFIED',
+              name_status: 'APPROVED',
+            },
+          ],
+        }),
       }) as unknown as typeof fetch;
 
     const result = await usecase.execute({
@@ -80,6 +99,21 @@ describe('ConnectMetaOauthUsecase', () => {
         whatsappBusinessToken: 'long-token',
         metaTokenType: 'bearer',
         facebookBusinessId: 'biz_1',
+      }),
+    );
+    expect(organizationDatasourceMock.updateById).toHaveBeenCalledWith(
+      expect.anything(),
+      expect.objectContaining({
+        whatsappNumbers: [
+          {
+            metaPhoneNumberId: 'phone-id-1',
+            displayPhoneNumber: '+5511999991234',
+            verifiedName: 'Empresa XPTO',
+            qualityRating: 'GREEN',
+            codeVerificationStatus: 'VERIFIED',
+            nameStatus: 'APPROVED',
+          },
+        ],
       }),
     );
   });
@@ -108,6 +142,10 @@ describe('ConnectMetaOauthUsecase', () => {
       .mockResolvedValueOnce({
         ok: true,
         json: async () => ({ data: [{ id: 'biz_2' }] }),
+      })
+      .mockResolvedValueOnce({
+        ok: true,
+        json: async () => ({ data: [] }),
       }) as unknown as typeof fetch;
 
     const result = await usecase.execute({
@@ -123,6 +161,60 @@ describe('ConnectMetaOauthUsecase', () => {
       expect.objectContaining({
         whatsappBusinessToken: 'short-only',
         metaTokenType: 'bearer',
+      }),
+    );
+  });
+
+  it('não falha callback quando listagem de números retorna erro', async () => {
+    const state = encodeState({
+      nonce: 'n1',
+      org: organizationId,
+      t: Date.now(),
+    });
+
+    global.fetch = jest
+      .fn()
+      .mockResolvedValueOnce({
+        ok: true,
+        json: async () => ({
+          access_token: 'short-token',
+          expires_in: 3600,
+          token_type: 'bearer',
+        }),
+      })
+      .mockResolvedValueOnce({
+        ok: true,
+        json: async () => ({
+          access_token: 'long-token',
+          expires_in: 5184000,
+          token_type: 'bearer',
+        }),
+      })
+      .mockResolvedValueOnce({
+        ok: true,
+        json: async () => ({ data: [{ id: 'biz_1' }] }),
+      })
+      .mockResolvedValueOnce({
+        ok: true,
+        json: async () => ({ data: [{ id: 'waba_1' }] }),
+      })
+      .mockResolvedValueOnce({
+        ok: false,
+        json: async () => ({ error: { message: 'forbidden' } }),
+      }) as unknown as typeof fetch;
+
+    const result = await usecase.execute({
+      organizationId,
+      code: 'code-ok',
+      redirectUri: 'http://localhost:5173/oauth/meta/callback',
+      state,
+    });
+
+    expect(result.connected).toBe(true);
+    expect(organizationDatasourceMock.updateById).toHaveBeenCalledWith(
+      expect.anything(),
+      expect.objectContaining({
+        whatsappBusinessToken: 'long-token',
       }),
     );
   });

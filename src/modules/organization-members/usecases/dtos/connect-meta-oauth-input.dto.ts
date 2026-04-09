@@ -11,7 +11,7 @@ export class ConnectMetaOauthInputDto {
     description: 'Redirect URI usada no início do OAuth',
     example: 'http://localhost:5173/oauth/meta/callback',
   })
-  @IsUrl()
+  @IsString()
   redirectUri: string;
 
   @ApiProperty({
